@@ -81,6 +81,7 @@ static int mdns_tinysvcmdns_register(char *apname, int port) {
             mdnsd_set_hostname(svr, hostname, main_ip);
             break;
         }
+#ifdef USE_IPV6
         else if (!(ifa->ifa_flags & IFF_LOOPBACK) && ifa->ifa_addr &&
                  ifa->ifa_addr->sa_family == AF_INET6)
         {
@@ -89,6 +90,7 @@ static int mdns_tinysvcmdns_register(char *apname, int port) {
             mdnsd_set_hostname_v6(svr, hostname, addr);
             break;
         }
+#endif
     }
 
     if (ifa == NULL)
@@ -112,12 +114,14 @@ static int mdns_tinysvcmdns_register(char *apname, int port) {
                     mdnsd_add_rr(svr, a_e);
                 }
                 break;
+#ifdef USE_IPV6
             case AF_INET6: { // ipv6
                     struct in6_addr *addr = &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr;
                     struct rr_entry *aaaa_e = rr_create_aaaa(create_nlabel(hostname), addr);
                     mdnsd_add_rr(svr, aaaa_e);
                 }
                 break;
+#endif
         }
     }
 

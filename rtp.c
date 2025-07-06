@@ -116,7 +116,7 @@ static int bind_port(SOCKADDR *remote) {
     SOCKADDR local;
     socklen_t local_len = sizeof(local);
     getsockname(sock, (struct sockaddr*)&local, &local_len);
-#ifdef AF_INET6
+#ifdef USE_IPV6
     if (local.SAFAMILY == AF_INET6) {
         struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)&local;
         sport = htons(sa6->sin6_port);
@@ -141,7 +141,7 @@ int rtp_setup(SOCKADDR *remote, int cport, int tport) {
     // an audio perfectionist may wish to learn the protocol.
 
     memcpy(&rtp_client, remote, sizeof(rtp_client));
-#ifdef AF_INET6
+#ifdef USE_IPV6
     if (rtp_client.SAFAMILY == AF_INET6) {
         struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)&rtp_client;
         sa6->sin6_port = htons(cport);

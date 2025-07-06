@@ -47,7 +47,7 @@
 #include "mdns.h"
 #include "metadata.h"
 
-#ifdef AF_INET6
+#ifdef USE_IPV6
 #define INETx_ADDRSTRLEN INET6_ADDRSTRLEN
 #else
 #define INETx_ADDRSTRLEN INET_ADDRSTRLEN
@@ -648,7 +648,7 @@ static void apple_challenge(int fd, rtsp_message *req, rtsp_message *resp) {
     free(chall);
     bp += chall_len;
 
-#ifdef AF_INET6
+#ifdef USE_IPV6
     if (fdsa.SAFAMILY == AF_INET6) {
         struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)(&fdsa);
         memcpy(bp, sa6->sin6_addr.s6_addr, 16);
@@ -836,7 +836,7 @@ respond:
 static const char* format_address(struct sockaddr *fsa) {
     static char string[INETx_ADDRSTRLEN];
     void *addr;
-#ifdef AF_INET6
+#ifdef USE_IPv6
     if (fsa->sa_family == AF_INET6) {
         struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)(fsa);
         addr = &(sa6->sin6_addr);
@@ -874,7 +874,7 @@ void rtsp_listen_loop(void) {
 
         ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 
-#ifdef IPV6_V6ONLY
+#ifdef USE_IPV6
         // some systems don't support v4 access on v6 sockets, but some do.
         // since we need to account for two sockets we might as well
         // always.
