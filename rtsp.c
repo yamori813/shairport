@@ -901,7 +901,6 @@ void rtsp_listen_loop(void) {
         nsock++;
         sockfd = realloc(sockfd, nsock*sizeof(int));
         sockfd[nsock-1] = fd;
-        break;
     }
 
     freeaddrinfo(info);
