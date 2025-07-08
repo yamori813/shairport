@@ -279,7 +279,7 @@ int main(int argc, char **argv) {
 
     // set defaults
     config.buffer_start_fill = 220;
-    config.port = 5002;
+    config.port = 5000;
     char hostname[100];
     gethostname(hostname, 100);
     config.apname = malloc(20 + 100);
