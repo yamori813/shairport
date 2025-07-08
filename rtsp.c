@@ -869,6 +869,10 @@ void rtsp_listen_loop(void) {
     }
 
     for (p=info; p; p=p->ai_next) {
+#ifndef USE_IPV6
+        if (p->ai_family == AF_INET6)
+            continue;
+#endif
         int fd = socket(p->ai_family, p->ai_socktype, IPPROTO_TCP);
         int yes = 1;
 
@@ -897,6 +901,7 @@ void rtsp_listen_loop(void) {
         nsock++;
         sockfd = realloc(sockfd, nsock*sizeof(int));
         sockfd[nsock-1] = fd;
+        break;
     }
 
     freeaddrinfo(info);
