@@ -114,7 +114,7 @@ static void alac_decode(short *dest, uint8_t *buf, int len) {
     unsigned char iv[16];
     int aeslen = len & ~0xf;
     memcpy(iv, aesiv, sizeof(iv));
-    AES_cbc_encrypt(buf, packet, aeslen, &aes, iv, AES_DECRYPT);
+//    AES_cbc_encrypt(buf, packet, aeslen, &aes, iv, AES_DECRYPT);
     memcpy(packet+aeslen, buf+aeslen, len-aeslen);
 
     int outsize;
@@ -518,7 +518,7 @@ int player_play(stream_cfg *stream) {
         die("specified buffer starting fill %d > buffer size %d",
             config.buffer_start_fill, BUFFER_FRAMES);
 
-    AES_set_decrypt_key(stream->aeskey, 128, &aes);
+//    AES_set_decrypt_key(stream->aeskey, 128, &aes);
     aesiv = stream->aesiv;
     init_decoder(stream->fmtp);
     // must be after decoder init

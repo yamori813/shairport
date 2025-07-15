@@ -602,6 +602,7 @@ static void handle_announce(rtsp_conn_info *conn,
     if (!paesiv) {
         config.no_aes = 1;
     } else {
+#if 0
         int len, keylen;
         uint8_t *aesiv = base64_dec(paesiv, &len);
         if (len != 16) {
@@ -622,6 +623,7 @@ static void handle_announce(rtsp_conn_info *conn,
         }
         memcpy(conn->stream.aeskey, aeskey, 16);
         free(aeskey);
+#endif
         config.no_aes = 0;
     }
 
@@ -645,6 +647,7 @@ static struct method_handler {
     {NULL,              NULL}
 };
 
+#if 0
 static void apple_challenge(int fd, rtsp_message *req, rtsp_message *resp) {
     char *hdr = msg_get_header(req, "Apple-Challenge");
     if (!hdr)
@@ -712,13 +715,14 @@ static char *make_nonce(void) {
     close(fd);
     return base64_enc(random, 8);
 }
+#endif
 
 static int rtsp_auth(char **nonce, rtsp_message *req, rtsp_message *resp) {
 
     if (!config.password)
         return 0;
     if (!*nonce) {
-        *nonce = make_nonce();
+//        *nonce = make_nonce();
         goto authenticate;
     }
 
@@ -814,7 +818,7 @@ static void *rtsp_conversation_thread_func(void *pconn) {
         resp = msg_init();
         resp->respcode = 400;
 
-        apple_challenge(conn->fd, req, resp);
+//        apple_challenge(conn->fd, req, resp);
         hdr = msg_get_header(req, "CSeq");
         if (hdr)
             msg_add_header(resp, "CSeq", hdr);

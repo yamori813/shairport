@@ -75,7 +75,7 @@ void debug(int level, char *format, ...) {
     va_end(args);
 }
 
-
+#if 0
 char *base64_enc(uint8_t *input, int length) {
     BIO *bmem, *b64;
     BUF_MEM *bptr;
@@ -174,6 +174,7 @@ uint8_t *rsa_apply(uint8_t *input, int inlen, int *outlen, int mode) {
     }
     return out;
 }
+#endif
 
 void command_start(void) {
     if (!config.cmd_start)
