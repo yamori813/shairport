@@ -393,35 +393,51 @@ static void handle_setup(rtsp_conn_info *conn,
     if (!hdr)
         return;
 
-    char *p;
-    p = strstr(hdr, "control_port=");
-    if (!p)
-        return;
-    p = strchr(p, '=') + 1;
-    cport = atoi(p);
+    if(strncmp("RTP/AVP/TCP", hdr, 11) == 0) {
+        config.use_tcp = 1;
+        rtsp_take_player();
+        int sport = rtp_setup(&conn->remote, 1, 0, 0);
+        player_play(&conn->stream);
+        char resphdr[100];
+        snprintf(resphdr, sizeof(resphdr),
+            "RTP/AVP/TCP;unicast;mode=record;server_port=%d", sport);
+        msg_add_header(resp, "Transport", resphdr);
 
-    p = strstr(hdr, "timing_port=");
-    if (!p)
-        return;
-    p = strchr(p, '=') + 1;
-    tport = atoi(p);
+        msg_add_header(resp, "Session", "1");
 
-    rtsp_take_player();
-    int sport = rtp_setup(&conn->remote, cport, tport);
-    if (!sport)
-        return;
+        resp->respcode = 200;
+    } else {
+        config.use_tcp = 0;
+        char *p;
+        p = strstr(hdr, "control_port=");
+        if (!p)
+            return;
+        p = strchr(p, '=') + 1;
+        cport = atoi(p);
 
-    player_play(&conn->stream);
+        p = strstr(hdr, "timing_port=");
+        if (!p)
+            return;
+        p = strchr(p, '=') + 1;
+        tport = atoi(p);
 
-    char resphdr[100];
-    snprintf(resphdr, sizeof(resphdr),
+        rtsp_take_player();
+        int sport = rtp_setup(&conn->remote, 0, cport, tport);
+        if (!sport)
+            return;
+
+        player_play(&conn->stream);
+
+        char resphdr[100];
+        snprintf(resphdr, sizeof(resphdr),
              "RTP/AVP/UDP;unicast;mode=record;server_port=%d;control_port=%d;timing_port=%d",
              sport, sport, sport);
-    msg_add_header(resp, "Transport", resphdr);
+        msg_add_header(resp, "Transport", resphdr);
 
-    msg_add_header(resp, "Session", "1");
+        msg_add_header(resp, "Session", "1");
 
-    resp->respcode = 200;
+        resp->respcode = 200;
+    }
 }
 
 static void handle_ignore(rtsp_conn_info *conn,
@@ -574,35 +590,40 @@ static void handle_announce(rtsp_conn_info *conn,
         cp = next;
     }
 
-    if (!paesiv || !prsaaeskey || !pfmtp) {
+    if (!pfmtp) {
         warn("required params missing from announce");
         return;
     }
 
-    int len, keylen;
-    uint8_t *aesiv = base64_dec(paesiv, &len);
-    if (len != 16) {
-        warn("client announced aeskey of %d bytes, wanted 16", len);
-        free(aesiv);
-        return;
-    }
-    memcpy(conn->stream.aesiv, aesiv, 16);
-    free(aesiv);
-
-    uint8_t *rsaaeskey = base64_dec(prsaaeskey, &len);
-    uint8_t *aeskey = rsa_apply(rsaaeskey, len, &keylen, RSA_MODE_KEY);
-    free(rsaaeskey);
-    if (keylen != 16) {
-        warn("client announced rsaaeskey of %d bytes, wanted 16", keylen);
-        free(aeskey);
-        return;
-    }
-    memcpy(conn->stream.aeskey, aeskey, 16);
-    free(aeskey);
-
     int i;
     for (i=0; i<sizeof(conn->stream.fmtp)/sizeof(conn->stream.fmtp[0]); i++)
         conn->stream.fmtp[i] = atoi(strsep(&pfmtp, " \t"));
+
+    if (!paesiv) {
+        config.no_aes = 1;
+    } else {
+        int len, keylen;
+        uint8_t *aesiv = base64_dec(paesiv, &len);
+        if (len != 16) {
+            warn("client announced aeskey of %d bytes, wanted 16", len);
+            free(aesiv);
+            return;
+        }
+        memcpy(conn->stream.aesiv, aesiv, 16);
+        free(aesiv);
+
+        uint8_t *rsaaeskey = base64_dec(prsaaeskey, &len);
+        uint8_t *aeskey = rsa_apply(rsaaeskey, len, &keylen, RSA_MODE_KEY);
+        free(rsaaeskey);
+        if (keylen != 16) {
+            warn("client announced rsaaeskey of %d bytes, wanted 16", keylen);
+            free(aeskey);
+            return;
+        }
+        memcpy(conn->stream.aeskey, aeskey, 16);
+        free(aeskey);
+        config.no_aes = 0;
+    }
 
     resp->respcode = 200;
 }

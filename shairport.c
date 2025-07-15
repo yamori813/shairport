@@ -52,11 +52,13 @@ void shairport_shutdown(int retval) {
         return;
     shutting_down = 1;
     printf("Shutting down...\n");
+/*
     mdns_unregister();
     rtsp_shutdown_stream();
     if (config.output)
         config.output->deinit();
     daemon_exit(); // This does nothing if not in daemon mode
+*/
 
     exit(retval);
 }

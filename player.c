@@ -188,6 +188,18 @@ static void free_buffer(void) {
         free(audio_buffer[i].data);
 }
 
+void player_put_tcp_packet(uint8_t *data, int len) {
+    int outsize;
+    abuf_t *abuf = 0;
+
+    abuf = audio_buffer;
+
+    if (abuf) {
+        alac_decode_frame(decoder_info, data, abuf->data, &outsize);
+        config.output->play(abuf->data, outsize/4);
+    }
+}
+
 void player_put_packet(seq_t seqno, uint8_t *data, int len) {
     abuf_t *abuf = 0;
     int16_t buf_fill;
@@ -511,23 +523,29 @@ int player_play(stream_cfg *stream) {
     init_decoder(stream->fmtp);
     // must be after decoder init
     init_buffer();
+
 #ifdef FANCY_RESAMPLING
     init_src();
 #endif
 
-    please_stop = 0;
-    command_start();
-    config.output->start(sampling_rate);
-    pthread_create(&player_thread, NULL, player_thread_func, NULL);
+    if (!config.use_tcp) {
+        please_stop = 0;
+        command_start();
+        pthread_create(&player_thread, NULL, player_thread_func, NULL);
+    } else {
+        config.output->start(sampling_rate);
+    }
 
     return 0;
 }
 
 void player_stop(void) {
-    please_stop = 1;
-    pthread_join(player_thread, NULL);
-    config.output->stop();
-    command_stop();
+    if (!config.use_tcp) {
+        please_stop = 1;
+        pthread_join(player_thread, NULL);
+        config.output->stop();
+        command_stop();
+    }
     free_buffer();
     free_decoder();
 #ifdef FANCY_RESAMPLING

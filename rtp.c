@@ -43,6 +43,55 @@ static SOCKADDR rtp_client;
 static int sock;
 static pthread_t rtp_thread;
 
+uint8_t packet[1024 * 4 * 4];
+
+static int rtp_tcp_read_chunk(int sock) {
+    int len;
+    int t, n;
+    n = 0;
+    while(n != 4) {
+        t = recv(sock, packet+n, 4 - n, 0);
+        if (t == 0)
+            return 0;
+        n += t;
+    }
+    if(packet[0] == 0x24 && packet[1] == 0x00) {
+        len = packet[2] * 0x100 + packet[3];
+        n = 0;
+        while(len != n) {
+            t = recv(sock, packet + n, len - n, 0);
+            if (t == 0)
+                return 0;
+            n += t;
+        }
+     } else {
+        debug(1, "header error %x %x\n", packet[0], packet[1]);
+        return 0;
+     }
+     return len;
+}
+
+static void *rtp_tcp_receiver(void *arg) {
+    struct sockaddr_in cli_addr;
+    socklen_t clilen;
+
+    listen(sock, 5);
+    clilen = sizeof(cli_addr);
+    int new_sock = accept(sock, (struct sockaddr *)&cli_addr, &clilen);
+    for(;;) {
+        int len = rtp_tcp_read_chunk(new_sock);
+        if (len == 0)
+            break;
+        player_put_tcp_packet(packet + 12, len - 12);
+    }
+
+    debug(1, "RTP thread interrupted. terminating.\n");
+    close(new_sock);
+    close(sock);
+
+    return NULL;
+}
+
 static void *rtp_receiver(void *arg) {
     // we inherit the signal mask (SIGUSR1)
     uint8_t packet[2048], *pktp;
@@ -91,9 +140,28 @@ static void *rtp_receiver(void *arg) {
     return NULL;
 }
 
+static int bind_tcp_port(SOCKADDR *remote) {
+    struct sockaddr_in serv_addr;
+    int port = 6000;
+
+    sock = socket(remote->SAFAMILY, SOCK_STREAM, 0);
+    if (sock < 0)
+        die("could not open socket!");
+
+    memset((char *)&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = remote->SAFAMILY;
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_port = htons(port);
+    int ret = bind(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+
+    if (ret < 0)
+        die("could not bind a TCP port!");
+
+    return port;
+}
+
 static int bind_port(SOCKADDR *remote) {
     struct addrinfo hints, *info;
-
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = remote->SAFAMILY;
     hints.ai_socktype = SOCK_DGRAM;
@@ -131,7 +199,7 @@ static int bind_port(SOCKADDR *remote) {
 }
 
 
-int rtp_setup(SOCKADDR *remote, int cport, int tport) {
+int rtp_setup(SOCKADDR *remote, int type, int cport, int tport) {
     if (running)
         die("rtp_setup called with active stream!");
 
@@ -152,12 +220,13 @@ int rtp_setup(SOCKADDR *remote, int cport, int tport) {
         sa->sin_port = htons(cport);
     }
 
-    int sport = bind_port(remote);
+    int sport = type ? bind_tcp_port(remote) : bind_port(remote);
 
-    debug(1, "rtp listening on port %d\n", sport);
+    debug(1, "rtp listening on %s port %d\n", type ? "TCP" : "UDP", sport);
 
     please_shutdown = 0;
-    pthread_create(&rtp_thread, NULL, &rtp_receiver, NULL);
+    pthread_create(&rtp_thread, NULL, type ? &rtp_tcp_receiver : &rtp_receiver,
+        NULL);
 
     running = 1;
     return sport;

@@ -21,7 +21,9 @@ typedef struct {
     char *password;
     char *apname;
     uint8_t hw_addr[6];
+    int use_tcp;
     int port;
+    int no_aes;
     char *output_name;
     audio_output *output;
     char *mdns_name;
