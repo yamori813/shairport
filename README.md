@@ -1,3 +1,9 @@
+Yet Anather ShairPort
+=========
+
+This fork is support for [light-play](https://github.com/ErikOnBike/light-play).
+
+
 ShairPort is no longer maintained
 =========
 
