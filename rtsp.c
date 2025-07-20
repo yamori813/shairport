@@ -46,6 +46,7 @@
 #include "rtp.h"
 #include "mdns.h"
 #include "metadata.h"
+#include "config.h"
 
 #ifdef USE_IPV6
 #define INETx_ADDRSTRLEN INET6_ADDRSTRLEN
@@ -942,7 +943,9 @@ void rtsp_listen_loop(void) {
             maxfd = sockfd[i];
     }
 
+#ifdef USE_MDNS
     mdns_register();
+#endif
 
     printf("Listening for connections.\n");
     shairport_startup_complete();

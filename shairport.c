@@ -35,7 +35,9 @@
 #include "common.h"
 #include "daemon.h"
 #include "rtsp.h"
+#ifdef USE_MDNS
 #include "mdns.h"
+#endif
 #include "getopt_long.h"
 #include "metadata.h"
 
@@ -52,13 +54,13 @@ void shairport_shutdown(int retval) {
         return;
     shutting_down = 1;
     printf("Shutting down...\n");
-/*
+#ifdef USE_MDNS
     mdns_unregister();
+#endif
     rtsp_shutdown_stream();
     if (config.output)
         config.output->deinit();
     daemon_exit(); // This does nothing if not in daemon mode
-*/
 
     exit(retval);
 }
@@ -69,6 +71,7 @@ static void sig_shutdown(int foo, siginfo_t *bar, void *baz) {
     shairport_shutdown(0);
 }
 
+#ifdef USE_MDNS
 static void sig_child(int foo, siginfo_t *bar, void *baz) {
     pid_t pid;
     while ((pid = waitpid((pid_t)-1, 0, WNOHANG)) > 0) {
@@ -77,6 +80,7 @@ static void sig_child(int foo, siginfo_t *bar, void *baz) {
         }
     }
 }
+#endif
 
 static void sig_logrotate(int foo, siginfo_t *bar, void *baz) {
     log_setup();
@@ -111,12 +115,14 @@ void usage(char *progname) {
     printf("    -M, --meta-dir=DIR      set a directory to write metadata and album cover art to\n");
 
     printf("    -o, --output=BACKEND    select audio output method\n");
+#ifdef USE_MDNS
     printf("    -m, --mdns=BACKEND      force the use of BACKEND to advertise the service\n");
     printf("                            if no mdns provider is specified,\n");
     printf("                            shairport tries them all until one works.\n");
 
     printf("\n");
     mdns_ls_backends();
+#endif
     printf("\n");
     audio_ls_outputs();
 }
@@ -139,7 +145,9 @@ int parse_options(int argc, char **argv) {
         {"on-stop",   required_argument,  NULL, 'E'},
         {"wait-cmd",  no_argument,        NULL, 'w'},
         {"meta-dir",  required_argument,  NULL, 'M'},
+#ifdef USE_MDNS
         {"mdns",      required_argument,  NULL, 'm'},
+#endif
         {NULL,        0,                  NULL,   0}
     };
 
@@ -196,9 +204,11 @@ int parse_options(int argc, char **argv) {
             case 'e':
                 config.errfile = optarg;
                 break;
+#ifdef USE_MDNS
             case 'm':
                 config.mdns_name = optarg;
                 break;
+#endif
         }
     }
     return optind;
@@ -232,8 +242,10 @@ void signal_setup(void) {
     sa.sa_sigaction = &sig_logrotate;
     sigaction(SIGHUP, &sa, NULL);
 
+#ifdef USE_MDNS
     sa.sa_sigaction = &sig_child;
     sigaction(SIGCHLD, &sa, NULL);
+#endif
 }
 
 // forked daemon lets the spawner know it's up and running OK

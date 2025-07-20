@@ -10,8 +10,13 @@ CFLAGS ?= -O2 -Wall
 
 PREFIX ?= /usr/local
 
-SRCS := shairport.c daemon.c rtsp.c mdns.c mdns_external.c mdns_tinysvcmdns.c common.c rtp.c metadata.c player.c alac.c audio.c audio_dummy.c audio_pipe.c tinysvcmdns.c md5.c
+SRCS := shairport.c daemon.c rtsp.c common.c rtp.c metadata.c player.c alac.c audio.c audio_dummy.c audio_pipe.c md5.c
 DEPS := config.mk alac.h audio.h common.h daemon.h getopt_long.h mdns.h metadata.h player.h rtp.h rtsp.h tinysvcmdns.h
+
+ifdef USE_MDNS
+SRCS += mdns.c mdns_external.c mdns_tinysvcmdns.c tinysvcmdns.c
+DEPS += mdns.h tinysvcmdns.h
+endif
 
 ifdef CONFIG_SNDIO
 SRCS += audio_sndio.c
