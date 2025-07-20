@@ -2,6 +2,7 @@ Yet Another ShairPort
 =========
 
 This fork is support for [light-play](https://github.com/ErikOnBike/light-play).
+Mac OS X iTunes not supported.
 
 
 ShairPort is no longer maintained
