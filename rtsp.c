@@ -569,8 +569,10 @@ static void handle_set_parameter(rtsp_conn_info *conn,
 static void handle_announce(rtsp_conn_info *conn,
                             rtsp_message *req, rtsp_message *resp) {
 
+#ifdef USE_AES
     char *paesiv = NULL;
     char *prsaaeskey = NULL;
+#endif
     char *pfmtp = NULL;
     char *cp = req->content;
     int cp_left = req->contentlength;
@@ -582,11 +584,13 @@ static void handle_announce(rtsp_conn_info *conn,
         if (!strncmp(cp, "a=fmtp:", 7))
             pfmtp = cp+7;
 
+#ifdef USE_AES
         if (!strncmp(cp, "a=aesiv:", 8))
             paesiv = cp+8;
 
         if (!strncmp(cp, "a=rsaaeskey:", 12))
             prsaaeskey = cp+12;
+#endif
 
         cp = next;
     }
@@ -600,33 +604,28 @@ static void handle_announce(rtsp_conn_info *conn,
     for (i=0; i<sizeof(conn->stream.fmtp)/sizeof(conn->stream.fmtp[0]); i++)
         conn->stream.fmtp[i] = atoi(strsep(&pfmtp, " \t"));
 
-    if (!paesiv) {
-        config.no_aes = 1;
-    } else {
-#if 0
-        int len, keylen;
-        uint8_t *aesiv = base64_dec(paesiv, &len);
-        if (len != 16) {
-            warn("client announced aeskey of %d bytes, wanted 16", len);
-            free(aesiv);
-            return;
-        }
-        memcpy(conn->stream.aesiv, aesiv, 16);
+#ifdef USE_AES
+    int len, keylen;
+    uint8_t *aesiv = base64_dec(paesiv, &len);
+    if (len != 16) {
+        warn("client announced aeskey of %d bytes, wanted 16", len);
         free(aesiv);
-
-        uint8_t *rsaaeskey = base64_dec(prsaaeskey, &len);
-        uint8_t *aeskey = rsa_apply(rsaaeskey, len, &keylen, RSA_MODE_KEY);
-        free(rsaaeskey);
-        if (keylen != 16) {
-            warn("client announced rsaaeskey of %d bytes, wanted 16", keylen);
-            free(aeskey);
-            return;
-        }
-        memcpy(conn->stream.aeskey, aeskey, 16);
-        free(aeskey);
-#endif
-        config.no_aes = 0;
+        return;
     }
+    memcpy(conn->stream.aesiv, aesiv, 16);
+    free(aesiv);
+
+    uint8_t *rsaaeskey = base64_dec(prsaaeskey, &len);
+    uint8_t *aeskey = rsa_apply(rsaaeskey, len, &keylen, RSA_MODE_KEY);
+    free(rsaaeskey);
+    if (keylen != 16) {
+        warn("client announced rsaaeskey of %d bytes, wanted 16", keylen);
+        free(aeskey);
+        return;
+    }
+    memcpy(conn->stream.aeskey, aeskey, 16);
+    free(aeskey);
+#endif
 
     resp->respcode = 200;
 }

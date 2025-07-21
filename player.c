@@ -30,7 +30,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <pthread.h>
+#ifdef USE_AES
 #include <openssl/aes.h>
+#endif
 #include <math.h>
 #include <sys/stat.h>
 #include <sys/signal.h>
@@ -50,7 +52,9 @@
 
 // parameters from the source
 static unsigned char *aesiv;
+#ifdef USE_AES
 static AES_KEY aes;
+#endif
 static int sampling_rate, frame_size;
 
 #define FRAME_BYTES(frame_size) (4*frame_size)
@@ -114,7 +118,9 @@ static void alac_decode(short *dest, uint8_t *buf, int len) {
     unsigned char iv[16];
     int aeslen = len & ~0xf;
     memcpy(iv, aesiv, sizeof(iv));
-//    AES_cbc_encrypt(buf, packet, aeslen, &aes, iv, AES_DECRYPT);
+#ifdef USE_AES
+    AES_cbc_encrypt(buf, packet, aeslen, &aes, iv, AES_DECRYPT);
+#endif
     memcpy(packet+aeslen, buf+aeslen, len-aeslen);
 
     int outsize;
@@ -518,7 +524,9 @@ int player_play(stream_cfg *stream) {
         die("specified buffer starting fill %d > buffer size %d",
             config.buffer_start_fill, BUFFER_FRAMES);
 
-//    AES_set_decrypt_key(stream->aeskey, 128, &aes);
+#ifdef USE_AES
+    AES_set_decrypt_key(stream->aeskey, 128, &aes);
+#endif
     aesiv = stream->aesiv;
     init_decoder(stream->fmtp);
     // must be after decoder init
