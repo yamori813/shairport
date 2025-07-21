@@ -88,6 +88,7 @@ static void *rtp_tcp_receiver(void *arg) {
     debug(1, "RTP thread interrupted. terminating.\n");
     close(new_sock);
     close(sock);
+    config.output->stop();
 
     return NULL;
 }
