@@ -75,7 +75,7 @@ void debug(int level, char *format, ...) {
     va_end(args);
 }
 
-#if 0
+#ifdef USE_AES
 char *base64_enc(uint8_t *input, int length) {
     BIO *bmem, *b64;
     BUF_MEM *bptr;
