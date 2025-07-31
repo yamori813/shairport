@@ -120,6 +120,7 @@ static void play(short buf[], int samples) {
 }
 
 static void stop(void) {
+    out123_stop(dev);
 }
 
 audio_output audio_out123 = {
