@@ -483,7 +483,9 @@ static void handle_set_parameter_metadata(rtsp_conn_info *conn,
         tag[4] = '\0';
         off += 4;
 
-        uint32_t vl = ntohl(*(uint32_t *)(cp+off));
+//        uint32_t vl = ntohl(*(uint32_t *)(cp+off));
+        uint32_t vl = cp[off + 3] | cp[off + 2] << 8 | cp[off + 1] << 16 |
+	    cp[off] << 24;;
         off += sizeof(uint32_t);
 
         char *val = malloc(vl+1);
