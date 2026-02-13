@@ -87,7 +87,7 @@ static void *rtp_tcp_receiver(void *arg) {
 
     debug(1, "RTP thread interrupted. terminating.\n");
     close(new_sock);
-    close(sock);
+//    close(sock);
     config.output->stop();
 
     return NULL;
@@ -145,6 +145,8 @@ static int bind_tcp_port(SOCKADDR *remote) {
     struct sockaddr_in serv_addr;
     int port = 6000;
 
+    if (sock > 0)
+      return port;
     sock = socket(remote->SAFAMILY, SOCK_STREAM, 0);
     if (sock < 0)
         die("could not open socket!");
